@@ -11,11 +11,11 @@
 define: false, process: false, window: false */
 define([
 //>>excludeStart('excludeHbs', pragmas.excludeHbs)
-'handlebars', 'underscore', 'i18nprecompile', 'json2'
+'handlebars', 'underscore'
 //>>excludeEnd('excludeHbs')
 ], function (
 //>>excludeStart('excludeHbs', pragmas.excludeHbs)
- Handlebars, _, precompile, JSON
+ Handlebars, _
 //>>excludeEnd('excludeHbs')
 ) {
 //>>excludeStart('excludeHbs', pragmas.excludeHbs)
@@ -31,7 +31,6 @@ define([
         devStyleDirectory = "/styles/",
         buildStyleDirectory = "/demo-build/styles/",
         helperDirectory = "template/helpers/",
-        i18nDirectory = "template/i18n/",
         buildCSSFileName = "screen.build.css";
 
     if (typeof window !== "undefined" && window.navigator && window.document && !window.navigator.userAgent.match(/Node.js/)) {
@@ -133,7 +132,6 @@ define([
           //>>excludeStart('excludeHbs', pragmas.excludeHbs)
 
             var compiledName = name + customNameExtension,
-                disableI18n = (config.hbs && config.hbs.disableI18n),
                 partialDeps = [];
 
             function recursiveNodeSearch( statements, res ) {
@@ -376,12 +374,13 @@ define([
                                       "t.vars = " + JSON.stringify(vars) + ";\n";
                   }
 
-                  var mapping = disableI18n? false : _.extend( langMap, config.localeMapping ),
-                      prec = precompile( text, mapping, { originalKeyFallback: (config.hbs || {}).originalKeyFallback });
+                  var ast = Handlebars.parse(text);
+                  environment = new Handlebars.Compiler().compile(ast, {});
+                  text = new Handlebars.JavaScriptCompiler().compile(environment, {});
 
                   text = "/* START_TEMPLATE */\n" +
                          "define(['hbs','handlebars'"+depStr+helpDepStr+"], function( hbs, Handlebars ){ \n" +
-                           "var t = Handlebars.template(" + prec + ");\n" +
+                           "var t = Handlebars.template(" + text + ");\n" +
                            "Handlebars.registerPartial('" + name.replace( /\//g , '_') + "', t);\n" +
                            debugProperties +
                            "return t;\n" +
@@ -434,13 +433,7 @@ define([
 
             var path = parentRequire.toUrl(name +'.'+ (config.hbs && config.hbs.templateExtension? config.hbs.templateExtension : templateExtension));
 
-            if (disableI18n){
-                fetchAndRegister(false);
-            } else {
-                fetchOrGetCached(parentRequire.toUrl((config.hbs && config.hbs.i18nDirectory ? config.hbs.i18nDirectory : i18nDirectory) + (config.locale || "en_us") + '.json'), function (langMap) {
-                  fetchAndRegister(JSON.parse(langMap));
-                });
-            }
+            fetchAndRegister(false);
           //>>excludeEnd('excludeHbs')
         }
       };
